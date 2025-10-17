@@ -1,0 +1,241 @@
+### 测试场景1：学生管理流程
+
+### 1. 创建第一个学生
+POST http://localhost:8080/api/students
+Content-Type: application/json
+
+{
+  "studentId": "2024001",
+  "name": "张三",
+  "major": "计算机科学与技术",
+  "grade": 2024,
+  "email": "zhangsan@example.com"
+}
+
+### 2. 创建第二个学生
+POST http://localhost:8080/api/students
+Content-Type: application/json
+
+{
+  "studentId": "2024002",
+  "name": "李四",
+  "major": "软件工程",
+  "grade": 2024,
+  "email": "lisi@example.com"
+}
+
+### 3. 创建第三个学生
+POST http://localhost:8080/api/students
+Content-Type: application/json
+
+{
+  "studentId": "2024003",
+  "name": "王五",
+  "major": "数据科学",
+  "grade": 2024,
+  "email": "wangwu@example.com"
+}
+
+### 4. 查询所有学生
+GET http://localhost:8080/api/students
+
+### 5. 根据ID查询特定学生（需要替换 {studentId}）
+GET http://localhost:8080/api/students/{studentId}
+
+### 6. 更新学生信息（需要替换 {studentId}）
+PUT http://localhost:8080/api/students/{studentId}
+Content-Type: application/json
+
+{
+  "studentId": "2024001",
+  "name": "张三丰",
+  "major": "人工智能",
+  "grade": 2024,
+  "email": "zhangsanfeng@example.com"
+}
+
+### 测试场景2：课程管理流程
+
+### 1. 创建第一门课程（容量3人）
+POST http://localhost:8080/api/courses
+Content-Type: application/json
+
+{
+  "code": "CS101",
+  "title": "计算机科学导论",
+  "instructor": {
+    "id": "T001",
+    "name": "张教授",
+    "email": "zhang@example.edu.cn"
+  },
+  "schedule": {
+    "dayOfWeek": "MONDAY",
+    "startTime": "08:00",
+    "endTime": "10:00",
+    "expectedAttendance": 50
+  },
+  "capacity": 3
+}
+
+### 2. 创建第二门课程（容量2人）
+POST http://localhost:8080/api/courses
+Content-Type: application/json
+
+{
+  "code": "CS102",
+  "title": "数据结构",
+  "instructor": {
+    "id": "T002",
+    "name": "李教授",
+    "email": "li@example.edu.cn"
+  },
+  "schedule": {
+    "dayOfWeek": "WEDNESDAY",
+    "startTime": "14:00",
+    "endTime": "16:00",
+    "expectedAttendance": 40
+  },
+  "capacity": 2
+}
+
+### 3. 查询所有课程
+GET http://localhost:8080/api/courses
+
+### 4. 根据ID查询特定课程（需要替换 {courseId}）
+GET http://localhost:8080/api/courses/{courseId}
+
+### 5. 更新课程信息（需要替换 {courseId}）
+PUT http://localhost:8080/api/courses/{courseId}
+Content-Type: application/json
+
+{
+  "code": "CS101",
+  "title": "计算机科学导论（更新版）",
+  "instructor": {
+    "id": "T001",
+    "name": "张教授",
+    "email": "zhang@example.edu.cn"
+  },
+  "schedule": {
+    "dayOfWeek": "MONDAY",
+    "startTime": "09:00",
+    "endTime": "11:00",
+    "expectedAttendance": 55
+  },
+  "capacity": 4
+}
+
+### 测试场景3：选课业务流程
+
+### 1. 学生1选课课程1
+POST http://localhost:8080/api/enrollments
+Content-Type: application/json
+
+{
+  "courseId": "替换为CS101的课程ID",
+  "studentId": "替换为张三的学生ID"
+}
+
+### 2. 学生2选课课程1
+POST http://localhost:8080/api/enrollments
+Content-Type: application/json
+
+{
+  "courseId": "替换为CS101的课程ID",
+  "studentId": "替换为李四的学生ID"
+}
+
+### 3. 学生3选课课程1（应该成功，容量为3）
+POST http://localhost:8080/api/enrollments
+Content-Type: application/json
+
+{
+  "courseId": "替换为CS101的课程ID",
+  "studentId": "替换为王五的学生ID"
+}
+
+### 4. 学生1重复选课课程1（应该失败）
+POST http://localhost:8080/api/enrollments
+Content-Type: application/json
+
+{
+  "courseId": "替换为CS101的课程ID",
+  "studentId": "替换为张三的学生ID"
+}
+
+### 5. 学生1选课课程2
+POST http://localhost:8080/api/enrollments
+Content-Type: application/json
+
+{
+  "courseId": "替换为CS102的课程ID",
+  "studentId": "替换为张三的学生ID"
+}
+
+### 6. 学生2选课课程2（应该成功）
+POST http://localhost:8080/api/enrollments
+Content-Type: application/json
+
+{
+  "courseId": "替换为CS102的课程ID",
+  "studentId": "替换为李四的学生ID"
+}
+
+### 7. 学生3选课课程2（应该失败，容量已满）
+POST http://localhost:8080/api/enrollments
+Content-Type: application/json
+
+{
+  "courseId": "替换为CS102的课程ID",
+  "studentId": "替换为王五的学生ID"
+}
+
+### 8. 查询所有选课记录
+GET http://localhost:8080/api/enrollments
+
+### 9. 按课程查询选课记录
+GET http://localhost:8080/api/enrollments/course/替换为CS101的课程ID
+
+### 10. 按学生查询选课记录
+GET http://localhost:8080/api/enrollments/student/替换为张三的学生ID
+
+### 测试场景4：删除和错误处理
+
+### 1. 尝试删除有选课记录的学生（应该失败）
+DELETE http://localhost:8080/api/students/替换为张三的学生ID
+
+### 2. 学生退课（删除选课记录）
+DELETE http://localhost:8080/api/enrollments/替换为张三的选课记录ID
+
+### 3. 再次尝试删除学生（应该成功）
+DELETE http://localhost:8080/api/students/替换为张三的学生ID
+
+### 4. 删除课程
+DELETE http://localhost:8080/api/courses/替换为CS102的课程ID
+
+### 5. 查询不存在的学生（应该返回404）
+GET http://localhost:8080/api/students/不存在的ID
+
+### 6. 创建学生时使用重复学号（应该失败）
+POST http://localhost:8080/api/students
+Content-Type: application/json
+
+{
+  "studentId": "2024001",
+  "name": "赵六",
+  "major": "网络工程",
+  "grade": 2024,
+  "email": "zhaoliu@example.com"
+}
+
+### 7. 创建学生时使用无效邮箱（应该失败）
+POST http://localhost:8080/api/students
+Content-Type: application/json
+
+{
+  "studentId": "2024004",
+  "name": "赵六",
+  "major": "网络工程",
+  "grade": 2024,
+  "email": "invalid-email"
+}
