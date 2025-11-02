@@ -1,78 +1,65 @@
 package com.zjsu.cxt.course.model;
 
+import jakarta.persistence.*;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
+@Entity
+@Table(name = "enrollments",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"course_id", "student_id"}),
+        indexes = {
+                @Index(columnList = "course_id,status"),
+                @Index(columnList = "student_id,status")
+        })
 public class Enrollment {
-    private String id;
-    private String courseId;    // 课程ID
-    private String studentId;   // 学生ID
-    private LocalDateTime enrolledAt; // 选课时间
-    private String status;      // 选课状态：ENROLLED, DROPPED
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    // 构造方法
-    public Enrollment() {
-        this.status = "ENROLLED";
-        this.enrolledAt = LocalDateTime.now();
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", nullable = false)
+    private Course course;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "student_id", nullable = false)
+    private Student student;
+
+    @Column(name = "enrolled_at")
+    private LocalDateTime enrolledAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private EnrollmentStatus status;
+
+    @PrePersist
+    protected void onCreate() {
+        enrolledAt = LocalDateTime.now();
+        if (status == null) {
+            status = EnrollmentStatus.ACTIVE;
+        }
     }
 
-    public Enrollment(String courseId, String studentId) {
-        this.id = UUID.randomUUID().toString();
-        this.courseId = courseId;
-        this.studentId = studentId;
-        this.enrolledAt = LocalDateTime.now();
-        this.status = "ENROLLED";
+    public Enrollment() {}
+
+    public Enrollment(Course course, Student student) {
+        this.course = course;
+        this.student = student;
+        this.status = EnrollmentStatus.ACTIVE;
     }
 
-    // Getter 和 Setter
-    public String getId() {
-        return id;
-    }
+    // Getter和Setter方法
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    public Course getCourse() { return course; }
+    public void setCourse(Course course) { this.course = course; }
 
-    public String getCourseId() {
-        return courseId;
-    }
+    public Student getStudent() { return student; }
+    public void setStudent(Student student) { this.student = student; }
 
-    public void setCourseId(String courseId) {
-        this.courseId = courseId;
-    }
+    public LocalDateTime getEnrolledAt() { return enrolledAt; }
+    public void setEnrolledAt(LocalDateTime enrolledAt) { this.enrolledAt = enrolledAt; }
 
-    public String getStudentId() {
-        return studentId;
-    }
-
-    public void setStudentId(String studentId) {
-        this.studentId = studentId;
-    }
-
-    public LocalDateTime getEnrolledAt() {
-        return enrolledAt;
-    }
-
-    public void setEnrolledAt(LocalDateTime enrolledAt) {
-        this.enrolledAt = enrolledAt;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    @Override
-    public String toString() {
-        return "Enrollment{" +
-                "id='" + id + '\'' +
-                ", courseId='" + courseId + '\'' +
-                ", studentId='" + studentId + '\'' +
-                ", enrolledAt=" + enrolledAt +
-                ", status='" + status + '\'' +
-                '}';
-    }
+    public EnrollmentStatus getStatus() { return status; }
+    public void setStatus(EnrollmentStatus status) { this.status = status; }
 }
+

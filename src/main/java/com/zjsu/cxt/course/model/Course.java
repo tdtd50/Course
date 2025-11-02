@@ -1,116 +1,111 @@
 package com.zjsu.cxt.course.model;
 
-import java.util.UUID;
+import com.zjsu.cxt.course.model.Enrollment;
+import com.zjsu.cxt.course.model.Instructor;
+import jakarta.persistence.*;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 
+@Entity
+@Table(name = "courses",
+        uniqueConstraints = @UniqueConstraint(columnNames = "course_code"))
 public class Course {
-    private String id;
-    private String code;        // 课程代码：CS101
-    private String title;       // 课程名称
-    private Instructor instructor; // 授课教师
-    private ScheduleSlot schedule; // 课程安排
-    private Integer capacity;   // 课程容量
-    private Integer enrolled;   // 已选人数
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
-    // 构造方法
-    public Course() {
-        this.enrolled = 0; // 默认已选人数为0
-    }
+    @Column(name = "course_code", nullable = false, length = 20)
+    private String courseCode;
 
-    public Course(String code, String title, Instructor instructor,
-                  ScheduleSlot schedule, Integer capacity) {
-        this.id = UUID.randomUUID().toString();
-        this.code = code;
-        this.title = title;
-        this.instructor = instructor;
-        this.schedule = schedule;
-        this.capacity = capacity;
-        this.enrolled = 0;
-    }
+    @Column(nullable = false, length = 100)
+    private String title;
 
-    // Getter 和 Setter
-    public String getId() {
-        return id;
-    }
+    @Column(length = 500)
+    private String description;
 
-    public void setId(String id) {
-        this.id = id;
-    }
+    @Column(nullable = false)
+    private Integer capacity;
 
-    public String getCode() {
-        return code;
-    }
+    @Column(name = "enrolled_count")
+    private Integer enrolledCount = 0;
 
-    public void setCode(String code) {
-        this.code = code;
-    }
+    @Embedded
+    private Instructor instructor;
 
-    public String getTitle() {
-        return title;
-    }
+    @Embedded
+    private Schedule schedule;
 
-    public void setTitle(String title) {
-        this.title = title;
-    }
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
 
-    public Instructor getInstructor() {
-        return instructor;
-    }
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL)
+    private Set<Enrollment> enrollments = new HashSet<>();
 
-    public void setInstructor(Instructor instructor) {
-        this.instructor = instructor;
-    }
-
-    public ScheduleSlot getSchedule() {
-        return schedule;
-    }
-
-    public void setSchedule(ScheduleSlot schedule) {
-        this.schedule = schedule;
-    }
-
-    public Integer getCapacity() {
-        return capacity;
-    }
-
-    public void setCapacity(Integer capacity) {
-        this.capacity = capacity;
-    }
-
-    public Integer getEnrolled() {
-        return enrolled;
-    }
-
-    public void setEnrolled(Integer enrolled) {
-        this.enrolled = enrolled;
-    }
-
-    // 增加选课人数
-    public void incrementEnrolled() {
-        this.enrolled++;
-    }
-
-    // 减少选课人数
-    public void decrementEnrolled() {
-        if (this.enrolled > 0) {
-            this.enrolled--;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        if (enrolledCount == null) {
+            enrolledCount = 0;
         }
     }
 
-    // 检查是否还有空位
-    public boolean hasAvailableSeats() {
-        return enrolled < capacity;
+    public Course() {}
+
+    public Course(String courseCode, String title, String description,
+                  Integer capacity, Instructor instructor, Schedule schedule) {
+        this.courseCode = courseCode;
+        this.title = title;
+        this.description = description;
+        this.capacity = capacity;
+        this.instructor = instructor;
+        this.schedule = schedule;
+        this.enrolledCount = 0;
     }
 
-    @Override
-    public String toString() {
-        return "Course{" +
-                "id='" + id + '\'' +
-                ", code='" + code + '\'' +
-                ", title='" + title + '\'' +
-                ", instructor=" + instructor +
-                ", schedule=" + schedule +
-                ", capacity=" + capacity +
-                ", enrolled=" + enrolled +
-                '}';
+    // Getter和Setter方法
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
+
+    public String getCourseCode() { return courseCode; }
+    public void setCourseCode(String courseCode) { this.courseCode = courseCode; }
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public Integer getCapacity() { return capacity; }
+    public void setCapacity(Integer capacity) { this.capacity = capacity; }
+
+    public Integer getEnrolledCount() { return enrolledCount; }
+    public void setEnrolledCount(Integer enrolledCount) { this.enrolledCount = enrolledCount; }
+
+    public Instructor getInstructor() { return instructor; }
+    public void setInstructor(Instructor instructor) { this.instructor = instructor; }
+
+    public Schedule getSchedule() { return schedule; }
+    public void setSchedule(Schedule schedule) { this.schedule = schedule; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Set<Enrollment> getEnrollments() { return enrollments; }
+    public void setEnrollments(Set<Enrollment> enrollments) { this.enrollments = enrollments; }
+
+    // 业务方法
+    public boolean hasAvailableSeats() {
+        return enrolledCount < capacity;
+    }
+
+    public void incrementEnrolledCount() {
+        this.enrolledCount++;
+    }
+
+    public void decrementEnrolledCount() {
+        if (this.enrolledCount > 0) {
+            this.enrolledCount--;
+        }
     }
 }

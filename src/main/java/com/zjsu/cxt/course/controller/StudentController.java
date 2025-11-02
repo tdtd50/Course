@@ -3,7 +3,6 @@ package com.zjsu.cxt.course.controller;
 import com.zjsu.cxt.course.model.ApiResponse;
 import com.zjsu.cxt.course.model.Student;
 import com.zjsu.cxt.course.service.StudentService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,73 +14,88 @@ import java.util.List;
 @RequestMapping("/api/students")
 public class StudentController {
 
-    private final StudentService studentService;
-
     @Autowired
-    public StudentController(StudentService studentService) {
-        this.studentService = studentService;
-    }
+    private StudentService studentService;
 
-    // 创建学生
-    @PostMapping
-    public ResponseEntity<ApiResponse<Student>> createStudent(@Valid @RequestBody Student student) {
-        try {
-            Student createdStudent = studentService.createStudent(student);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("学生创建成功", createdStudent));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(400, e.getMessage()));
-        }
-    }
-
-    // 获取所有学生
     @GetMapping
     public ResponseEntity<ApiResponse<List<Student>>> getAllStudents() {
         List<Student> students = studentService.getAllStudents();
         return ResponseEntity.ok(ApiResponse.success(students));
     }
 
-    // 根据ID获取学生
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Student>> getStudentById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Student>> getStudentById(@PathVariable Long id) {
+        return studentService.getStudentById(id)
+                .map(student -> ResponseEntity.ok(ApiResponse.success(student)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body((ApiResponse<Student>) ApiResponse.error(404, "Student not found")));
+    }
+
+    @GetMapping("/student-id/{studentId}")
+    public ResponseEntity<ApiResponse<Student>> getStudentByStudentId(@PathVariable String studentId) {
+        return studentService.getStudentByStudentId(studentId)
+                .map(student -> ResponseEntity.ok(ApiResponse.success(student)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body((ApiResponse<Student>) ApiResponse.error(404, "Student not found")));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<Student>> createStudent(@RequestBody Student student) {
         try {
-            Student student = studentService.getStudentById(id);
-            return ResponseEntity.ok(ApiResponse.success(student));
+            Student createdStudent = studentService.createStudent(student);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success(createdStudent));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body((ApiResponse<Student>) ApiResponse.error(409, e.getMessage()));
         }
     }
 
-    // 更新学生信息
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Student>> updateStudent(
-            @PathVariable String id,
-            @Valid @RequestBody Student student) {
+    public ResponseEntity<ApiResponse<Student>> updateStudent(@PathVariable Long id,
+                                                              @RequestBody Student studentDetails) {
         try {
-            Student updatedStudent = studentService.updateStudent(id, student);
-            return ResponseEntity.ok(ApiResponse.success("学生信息更新成功", updatedStudent));
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage().contains("不存在")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error(404, e.getMessage()));
+            Student updatedStudent = studentService.updateStudent(id, studentDetails);
+            if (updatedStudent != null) {
+                return ResponseEntity.ok(ApiResponse.success(updatedStudent));
             } else {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error(400, e.getMessage()));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body((ApiResponse<Student>) ApiResponse.error(404, "Student not found"));
             }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body((ApiResponse<Student>) ApiResponse.error(409, e.getMessage()));
         }
     }
 
-    // 删除学生
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteStudent(@PathVariable String id) {
-        try {
-            studentService.deleteStudent(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
+    public ResponseEntity<ApiResponse<?>> deleteStudent(@PathVariable Long id) {
+        boolean deleted = studentService.deleteStudent(id);
+        if (deleted) {
+            return ResponseEntity.ok(ApiResponse.success("Student deleted successfully"));
+        } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, e.getMessage()));
+                    .body(ApiResponse.error(404, "Student not found"));
         }
+    }
+
+    @GetMapping("/major/{major}")
+    public ResponseEntity<ApiResponse<List<Student>>> getStudentsByMajor(@PathVariable String major) {
+        List<Student> students = studentService.getStudentsByMajor(major);
+        return ResponseEntity.ok(ApiResponse.success(students));
+    }
+
+    @GetMapping("/grade/{grade}")
+    public ResponseEntity<ApiResponse<List<Student>>> getStudentsByGrade(@PathVariable String grade) {
+        List<Student> students = studentService.getStudentsByGrade(grade);
+        return ResponseEntity.ok(ApiResponse.success(students));
+    }
+
+    @GetMapping("/filter")
+    public ResponseEntity<ApiResponse<List<Student>>> getStudentsByMajorAndGrade(
+            @RequestParam String major,
+            @RequestParam String grade) {
+        List<Student> students = studentService.getStudentsByMajorAndGrade(major, grade);
+        return ResponseEntity.ok(ApiResponse.success(students));
     }
 }

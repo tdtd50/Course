@@ -9,92 +9,85 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/enrollments")
 public class EnrollmentController {
 
-    private final EnrollmentService enrollmentService;
-
     @Autowired
-    public EnrollmentController(EnrollmentService enrollmentService) {
-        this.enrollmentService = enrollmentService;
-    }
+    private EnrollmentService enrollmentService;
 
-    // 学生选课
-    @PostMapping
-    public ResponseEntity<ApiResponse<Enrollment>> enrollStudent(@RequestBody Map<String, String> request) {
-        try {
-            String courseId = request.get("courseId");
-            String studentId = request.get("studentId");
-
-            if (courseId == null || studentId == null) {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error(400, "courseId 和 studentId 不能为空"));
-            }
-
-            Enrollment enrollment = enrollmentService.enrollStudent(courseId, studentId);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("选课成功", enrollment));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(400, e.getMessage()));
-        }
-    }
-
-    // 学生退课
-    @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> dropCourse(@PathVariable String id) {
-        try {
-            enrollmentService.dropCourse(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(400, e.getMessage()));
-        }
-    }
-
-    // 查询所有选课记录
     @GetMapping
-    public ResponseEntity<ApiResponse<List<Enrollment>>> getAllEnrollments() {
-        List<Enrollment> enrollments = enrollmentService.getAllEnrollments();
+    public ResponseEntity<ApiResponse<List<Enrollment>>> getAllEnrollments(
+            @RequestParam(required = false) Long courseId,
+            @RequestParam(required = false) Long studentId) {
+        List<Enrollment> enrollments = enrollmentService.getAllEnrollments(courseId, studentId);
         return ResponseEntity.ok(ApiResponse.success(enrollments));
     }
 
-    // 按课程查询选课记录
-    @GetMapping("/course/{courseId}")
-    public ResponseEntity<ApiResponse<List<Enrollment>>> getEnrollmentsByCourseId(@PathVariable String courseId) {
-        try {
-            List<Enrollment> enrollments = enrollmentService.getEnrollmentsByCourseId(courseId);
-            return ResponseEntity.ok(ApiResponse.success(enrollments));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, e.getMessage()));
-        }
-    }
-
-    // 按学生查询选课记录
-    @GetMapping("/student/{studentId}")
-    public ResponseEntity<ApiResponse<List<Enrollment>>> getEnrollmentsByStudentId(@PathVariable String studentId) {
-        try {
-            List<Enrollment> enrollments = enrollmentService.getEnrollmentsByStudentId(studentId);
-            return ResponseEntity.ok(ApiResponse.success(enrollments));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, e.getMessage()));
-        }
-    }
-
-    // 根据ID查询选课记录
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Enrollment>> getEnrollmentById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Enrollment>> getEnrollmentById(@PathVariable Long id) {
+        return enrollmentService.getEnrollmentById(id)
+                .map(enrollment -> ResponseEntity.ok(ApiResponse.success(enrollment)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body((ApiResponse<Enrollment>) ApiResponse.error(404, "Enrollment not found")));
+    }
+
+    @PostMapping("/enroll")
+    public ResponseEntity<ApiResponse<Enrollment>> enrollStudent(@RequestBody EnrollmentRequest request) {
         try {
-            Enrollment enrollment = enrollmentService.getEnrollmentById(id);
-            return ResponseEntity.ok(ApiResponse.success(enrollment));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, e.getMessage()));
+            Enrollment enrollment = enrollmentService.enrollStudent(request.getCourseId(), request.getStudentId());
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success(enrollment));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body((ApiResponse<Enrollment>) ApiResponse.error(400, e.getMessage()));
         }
+    }
+
+    @PostMapping("/{id}/drop")
+    public ResponseEntity<ApiResponse<Enrollment>> dropEnrollment(@PathVariable Long id) {
+        try {
+            Enrollment enrollment = enrollmentService.dropEnrollment(id);
+            return ResponseEntity.ok(ApiResponse.success(enrollment));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body((ApiResponse<Enrollment>) ApiResponse.error(400, e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<?>> deleteEnrollment(@PathVariable Long id) {
+        boolean deleted = enrollmentService.deleteEnrollment(id);
+        if (deleted) {
+            return ResponseEntity.ok(ApiResponse.success("Enrollment deleted successfully"));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error(404, "Enrollment not found"));
+        }
+    }
+
+    @GetMapping("/student/{studentId}/active")
+    public ResponseEntity<ApiResponse<List<Enrollment>>> getActiveEnrollmentsByStudent(@PathVariable Long studentId) {
+        List<Enrollment> enrollments = enrollmentService.getActiveEnrollmentsByStudent(studentId);
+        return ResponseEntity.ok(ApiResponse.success(enrollments));
+    }
+
+    @GetMapping("/course/{courseId}/count")
+    public ResponseEntity<ApiResponse<Long>> getActiveEnrollmentCountByCourse(@PathVariable Long courseId) {
+        Long count = enrollmentService.getActiveEnrollmentCountByCourse(courseId);
+        return ResponseEntity.ok(ApiResponse.success(count));
+    }
+
+    // 内部请求类
+    public static class EnrollmentRequest {
+        private Long courseId;
+        private Long studentId;
+
+        public Long getCourseId() { return courseId; }
+        public void setCourseId(Long courseId) { this.courseId = courseId; }
+
+        public Long getStudentId() { return studentId; }
+        public void setStudentId(Long studentId) { this.studentId = studentId; }
     }
 }

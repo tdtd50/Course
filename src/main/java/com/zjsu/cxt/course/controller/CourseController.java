@@ -14,73 +14,86 @@ import java.util.List;
 @RequestMapping("/api/courses")
 public class CourseController {
 
-    private final CourseService courseService;
-
     @Autowired
-    public CourseController(CourseService courseService) {
-        this.courseService = courseService;
-    }
+    private CourseService courseService;
 
-    // 创建课程
-    @PostMapping
-    public ResponseEntity<ApiResponse<Course>> createCourse(@RequestBody Course course) {
-        try {
-            Course createdCourse = courseService.createCourse(course);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("课程创建成功", createdCourse));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest()
-                    .body(ApiResponse.error(400, e.getMessage()));
-        }
-    }
-
-    // 获取所有课程
     @GetMapping
     public ResponseEntity<ApiResponse<List<Course>>> getAllCourses() {
         List<Course> courses = courseService.getAllCourses();
         return ResponseEntity.ok(ApiResponse.success(courses));
     }
 
-    // 根据ID获取课程
     @GetMapping("/{id}")
-    public ResponseEntity<ApiResponse<Course>> getCourseById(@PathVariable String id) {
+    public ResponseEntity<ApiResponse<Course>> getCourseById(@PathVariable Long id) {
+        return courseService.getCourseById(id)
+                .map(course -> ResponseEntity.ok(ApiResponse.success(course)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body((ApiResponse<Course>) ApiResponse.error(404, "Course not found")));
+    }
+
+    @GetMapping("/code/{courseCode}")
+    public ResponseEntity<ApiResponse<Course>> getCourseByCode(@PathVariable String courseCode) {
+        return courseService.getCourseByCode(courseCode)
+                .map(course -> ResponseEntity.ok(ApiResponse.success(course)))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body((ApiResponse<Course>) ApiResponse.error(404, "Course not found")));
+    }
+
+    @PostMapping
+    public ResponseEntity<ApiResponse<Course>> createCourse(@RequestBody Course course) {
         try {
-            Course course = courseService.getCourseById(id);
-            return ResponseEntity.ok(ApiResponse.success(course));
+            Course createdCourse = courseService.createCourse(course);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(ApiResponse.success(createdCourse));
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body((ApiResponse<Course>) ApiResponse.error(409, e.getMessage()));
         }
     }
 
-    // 更新课程信息
     @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<Course>> updateCourse(
-            @PathVariable String id,
-            @RequestBody Course course) {
+    public ResponseEntity<ApiResponse<Course>> updateCourse(@PathVariable Long id,
+                                                            @RequestBody Course courseDetails) {
         try {
-            Course updatedCourse = courseService.updateCourse(id, course);
-            return ResponseEntity.ok(ApiResponse.success("课程信息更新成功", updatedCourse));
-        } catch (IllegalArgumentException e) {
-            if (e.getMessage().contains("不存在")) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(ApiResponse.error(404, e.getMessage()));
+            Course updatedCourse = courseService.updateCourse(id, courseDetails);
+            if (updatedCourse != null) {
+                return ResponseEntity.ok(ApiResponse.success(updatedCourse));
             } else {
-                return ResponseEntity.badRequest()
-                        .body(ApiResponse.error(400, e.getMessage()));
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body((ApiResponse<Course>) ApiResponse.error(404, "Course not found"));
             }
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body((ApiResponse<Course>) ApiResponse.error(409, e.getMessage()));
         }
     }
 
-    // 删除课程
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> deleteCourse(@PathVariable String id) {
-        try {
-            courseService.deleteCourse(id);
-            return ResponseEntity.noContent().build();
-        } catch (IllegalArgumentException e) {
+    public ResponseEntity<ApiResponse<?>> deleteCourse(@PathVariable Long id) {
+        boolean deleted = courseService.deleteCourse(id);
+        if (deleted) {
+            return ResponseEntity.ok(ApiResponse.success("Course deleted successfully"));
+        } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, e.getMessage()));
+                    .body(ApiResponse.error(404, "Course not found"));
         }
+    }
+
+    @GetMapping("/available")
+    public ResponseEntity<ApiResponse<List<Course>>> getAvailableCourses() {
+        List<Course> courses = courseService.getAvailableCourses();
+        return ResponseEntity.ok(ApiResponse.success(courses));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<Course>>> searchCourses(@RequestParam String keyword) {
+        List<Course> courses = courseService.searchCoursesByTitle(keyword);
+        return ResponseEntity.ok(ApiResponse.success(courses));
+    }
+
+    @GetMapping("/instructor/{instructorId}")
+    public ResponseEntity<ApiResponse<List<Course>>> getCoursesByInstructor(@PathVariable String instructorId) {
+        List<Course> courses = courseService.getCoursesByInstructor(instructorId);
+        return ResponseEntity.ok(ApiResponse.success(courses));
     }
 }
